@@ -45,6 +45,7 @@ describe('Auth routes', () => {
     let newUser: NewRegisteredUser;
     beforeEach(() => {
       newUser = {
+        _id: new mongoose.Types.ObjectId(),
         name: faker.name.findName(),
         email: faker.internet.email().toLowerCase(),
         password: 'password1',
