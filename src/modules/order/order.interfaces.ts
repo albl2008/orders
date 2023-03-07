@@ -9,6 +9,7 @@ export interface IOrder {
     description: string;
     total: number;
     products: Array<ObjectId>;
+    quantity: Array<number>;
     type: string;
     obs: string;
     date: Date;

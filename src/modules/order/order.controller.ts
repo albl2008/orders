@@ -6,36 +6,54 @@ import ApiError from '../errors/ApiError';
 import pick from '../utils/pick';
 import { IOptions } from '../paginate/paginate';
 import * as orderService from './order.service';
-import axios from 'axios';
+import * as amqp from 'amqplib'
+import { substractStock } from '../product/product.controller';
 
+var channel: amqp.Channel, connection;
+var queue = 'order'
+
+
+
+
+async function connect() {
+  const amqpServer = "amqp://localhost:5672";
+  connection = await amqp.connect(amqpServer);
+  channel = await connection.createChannel();
+  await channel.assertQueue("order");
+}
+connect();
 
 export const createOrder = catchAsync(async (req: Request, res: Response) => {
     req.body.user = req.user._id
     console.log(req.body)
     const order = await orderService.createOrder(req.body);
-    axios({
-      method:'POST',
-      url: 'http://localhost:3000/v1/orders/',
-      headers: {authorization:req.headers.authorization},
-      data: {
-        _id: order._id,
-        client: order.client,
-        description:order.description,
-        type: order.type,
-        obs: order.obs,
-        products: order.products,
-        date: order.date,
-        total: order.total,
-        user: order.user
-      },
-    }).then(res => {
-      if (res.status === 200) {
-        console.log('Orden Replicada')           
+    const products = order.products
+    const quantity = order.quantity
+    
+
+    for (let i=0; i<products.length;i++){
+      if (await substractStock(order.products[i],quantity[i]) == false){
+        console.log('Ocurrio un error al actualizar el stock')
+        console.log('Producto: ' + products[i],'Cantidad: ' + quantity[i])
+        return
       }
-    })
-    .catch(e => {
-      console.log(e+'Error en replicacion de orden')
-    })
+    }
+    const sent = await channel.sendToQueue(
+      "order",
+      Buffer.from(
+        JSON.stringify({
+          products,
+          quantity
+        })
+      )
+    );
+    sent
+              ? console.log(`Sent message to "${queue}" queue`, req.body)
+              : console.log(`Fails sending message to "${queue}" queue`, req.body)
+
+
+    
+
     res.status(httpStatus.CREATED).send(order);
 });
 
@@ -59,29 +77,6 @@ export const getOrder = catchAsync(async (req: Request, res: Response) => {
 export const updateOrder = catchAsync(async (req: Request, res: Response) => {
   if (typeof req.params['orderId'] === 'string') {
     const order = await orderService.updateOrderById(new mongoose.Types.ObjectId(req.params['orderId']), req.body);
-    axios({
-      method:'PATCH',
-      url: `http://localhost:3000/v1/orders/${req.params['orderId']}`,
-      headers: {authorization:req.headers.authorization},
-      data: {
-        _id: order._id,
-        client: order.client,
-        description:order.description,
-        type: order.type,
-        obs: order.obs,
-        products: order.products,
-        date: order.date,
-        total: order.total,
-        user: order.user
-      },
-    }).then(res => {
-      if (res.status === 200) {
-        console.log('Orden Actualizada')           
-      }
-    })
-    .catch(e => {
-      console.log(e+'Error en actualizacion de orden')
-    })
     res.send(order);
   }
 });
@@ -89,18 +84,6 @@ export const updateOrder = catchAsync(async (req: Request, res: Response) => {
 export const deleteOrder = catchAsync(async (req: Request, res: Response) => {
   if (typeof req.params['orderId'] === 'string') {
     await orderService.deleteOrderById(new mongoose.Types.ObjectId(req.params['orderId']));
-    axios({
-      method:'DELETE',
-      url: `http://localhost:3000/v1/orders/${req.params['orderId']}`,
-      headers: {authorization:req.headers.authorization},
-    }).then(res => {
-      if (res.status === 200) {
-        console.log('Orden Eliminada')           
-      }
-    })
-    .catch(e => {
-      console.log(e+'Error en eliminacion de orden')
-    })
     res.status(httpStatus.NO_CONTENT).send();
   }
 });

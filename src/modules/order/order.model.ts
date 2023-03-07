@@ -36,7 +36,12 @@ const orderSchema = new mongoose.Schema<IOrderDoc,IOrderModel>(
      
       products: {
         type: [Schema.Types.ObjectId],
-        ref: 'Product'
+        ref: 'Product',
+        trim: true
+      },
+      quantity: {
+        type: [Number],
+        required: true
       },
       
       date: {

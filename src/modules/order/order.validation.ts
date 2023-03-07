@@ -10,6 +10,7 @@ const createOrderBody: Record<keyof NewCreatedOrder, any> = {
   obs: Joi.string().required(),
   total: Joi.number().required(),
   products: Joi.array(),
+  quantity: Joi.array(),
   date: Joi.date(),
   user: Joi.string()
 };
@@ -47,6 +48,7 @@ export const updateOrder = {
       obs: Joi.string().required(),
       total: Joi.number().required(),
       products: Joi.array(),
+      quantity: Joi.array(),
       date: Joi.date(),
       user: Joi.string()
     })

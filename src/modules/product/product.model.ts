@@ -8,6 +8,11 @@ import { IProductModel, IProductDoc } from './product.interfaces';
 
 const productSchema = new mongoose.Schema<IProductDoc,IProductModel>(
   {
+    id:{
+      type: Schema.Types.ObjectId,
+      required:true,
+      trim:true
+    },
     name: {
       type: String,
       required: true,

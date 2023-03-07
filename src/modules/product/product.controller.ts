@@ -16,6 +16,33 @@ export const createProduct = catchAsync(async (req: Request, res: Response) => {
     res.status(httpStatus.CREATED).send(product);
 });
 
+export async function checkStock(product: any,quantity: number){
+  //console.log(product)
+  let productData = await productService.getProductById(new mongoose.Types.ObjectId(product))
+  //console.log('data: '+productData)
+  if (productData != null){
+    if (productData.stock < quantity){
+      return false
+    }
+    return true
+  }
+  return false
+}
+
+export async function substractStock(product: any, quantity: any){
+  if (await checkStock(product,quantity)){
+    let productData = await productService.getProductById(new mongoose.Types.ObjectId(product))
+    if (productData != null){
+      productData.stock = productData.stock - quantity
+      const updateProduct = await productService.updateProductById(new mongoose.Types.ObjectId(product), productData);
+      console.log('Stock actualizado')
+      return updateProduct
+    }
+  }
+  console.log(`Product ${product} no cuenta con stock suficiente`)
+  return false
+}
+
 export const getProducts = catchAsync(async (req: Request, res: Response) => {
   const filter = {user:req.user._id};
   const options: IOptions = pick(req.query, ['sortBy', 'limit', 'page', 'projectBy']);
@@ -46,3 +73,5 @@ export const deleteProduct = catchAsync(async (req: Request, res: Response) => {
     res.status(httpStatus.NO_CONTENT).send();
   }
 });
+
+
